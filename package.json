@@ -1,0 +1,22 @@
+{
+  "name": "statement-downloader",
+  "version": "1.0.0",
+  "description": "",
+  "main": " ",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": " "
+  },
+  "author": "",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "glob": "^7.1.2",
+    "mkdirp": "^0.5.1",
+    "moment": "^2.22.1",
+    "node-getopt": "^0.3.2",
+    "selenium-webdriver": "^4.0.0-alpha.1"
+  }
+}

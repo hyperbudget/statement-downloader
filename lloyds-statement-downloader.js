@@ -6,14 +6,17 @@ const mkdirp = require('mkdirp');
 const glob = require('glob');
 
 const downloads_dir = path.join(process.env.HOME, '/Downloads');
-const save_dir = path.join(process.env.HOME, '/bank2');
 
 let opt = require('node-getopt').create([
     ['u', 'lloyds_username=ARG', 'The Lloyds bank username'],
     ['p', 'lloyds_password=ARG', 'The Lloyds bank password'],
     ['s', 'lloyds_secret=ARG', 'The Lloyds bank secret/memorable information word'],
-    ['a', 'lloyds_account=ARG', 'The Lloyds bank account number']
+    ['a', 'lloyds_account=ARG', 'The Lloyds bank account number'],
+    ['', 'month[=ARG]', 'The month of the statement (Jan, Feb, Mar..); defaults to current month'],
+    ['', 'dir[=ARG]', 'Directory to shove the statement in. Absolute paths only'],
 ]).bindHelp().parseSystem();
+
+const save_dir = opt.options.dir || path.join(process.env.HOME, '/bank2');
 
 console.log(opt.options);
 
@@ -65,7 +68,7 @@ function viewStatement(driver) {
 
 
 function selectCurrentMonth(driver) {
-  let month = moment().format('MMM');
+  let month = opt.options.month || moment().format('MMM');
   return driver.findElement(By.css(`button[aria-label="${month} transactions"]`))
     .then((el) => el.click());
 }
@@ -97,7 +100,9 @@ function makeSaveDir() {
 
 function moveDownloadedCSV() {
   let file_match = opt.options.lloyds_account + "_" + moment().format('YMMDD');
-  let new_filename = moment().format('YMM') + '.csv';
+  let month = opt.options.month || moment().format('MMM');
+
+  let new_filename = moment(new Date(month + '1 ' + moment().format('Y') + ' 00:00 UTC')).format('YMM') + '.csv';
 
   return new Promise((resolve, reject) => {
     let found = false;

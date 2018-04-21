@@ -1,5 +1,5 @@
 # statement-downloader
-Automagic selenium statement downloader. *USE AT OWN RISK*
+Automagic node-webdriver-selenium-based bank statement downloader. *USE AT OWN RISK*
 
 ## What is this monstrosity?
 It logs in to your bank account and downloads your bank statement. *Yeaaaah...*

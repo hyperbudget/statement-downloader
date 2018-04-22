@@ -29,60 +29,60 @@ function build_driver() {
 }
 
 function login(driver) {
-    return driver.get('https://online.lloydsbank.co.uk/personal/logon/login.jsp')
-    .then(() => driver.findElement(By.id('frmLogin:strCustomerLogin_userID')))
-    .then((el) => el.sendKeys(opt.options.lloyds_username))
+  return driver.get('https://online.lloydsbank.co.uk/personal/logon/login.jsp')
+  .then(() => driver.findElement(By.id('frmLogin:strCustomerLogin_userID')))
+  .then((el) => el.sendKeys(opt.options.lloyds_username))
 
-    .then(() => driver.findElement(By.id('frmLogin:strCustomerLogin_pwd')))
-    .then((el) => el.sendKeys(opt.options.lloyds_password))
+  .then(() => driver.findElement(By.id('frmLogin:strCustomerLogin_pwd')))
+  .then((el) => el.sendKeys(opt.options.lloyds_password))
 
-    .then(() => driver.findElement(By.id('frmLogin:btnLogin2')))
-    .then((el) => el.click());
+  .then(() => driver.findElement(By.id('frmLogin:btnLogin2')))
+  .then((el) => el.click());
 }
 
 function fillMemorableInfoCharacter(driver, idx) {
-    return new Promise(function (resolve, reject) {
-        driver.wait(until.elementLocated(By.css('label[for="frmentermemorableinformation1:strEnterMemorableInformation_memInfo' + idx + '"]')), 10000)
-            .then((el) =>
-                    driver.executeScript(function() {
-                        return arguments[0].innerHTML;
-                    }, el))
+  return new Promise(function (resolve, reject) {
+    driver.wait(until.elementLocated(By.css('label[for="frmentermemorableinformation1:strEnterMemorableInformation_memInfo' + idx + '"]')), 10000)
+    .then((el) =>
+        driver.executeScript(function() {
+          return arguments[0].innerHTML;
+        }, el))
 
-        .then((html) => {
-            let wanted_char = html.match(/Character (\d) :/)[1];
-            let secret_characters = opt.options.lloyds_secret.split("");
-            let answer = secret_characters[wanted_char - 1];
+    .then((html) => {
+      let wanted_char = html.match(/Character (\d) :/)[1];
+      let secret_characters = opt.options.lloyds_secret.split("");
+      let answer = secret_characters[wanted_char - 1];
 
-            driver.findElement(By.id('frmentermemorableinformation1:strEnterMemorableInformation_memInfo' + idx))
-            .then((el) => el.sendKeys(answer))
-            .then(() => resolve());
-        })
-    });
+      driver.findElement(By.id('frmentermemorableinformation1:strEnterMemorableInformation_memInfo' + idx))
+      .then((el) => el.sendKeys(answer))
+      .then(() => resolve());
+    })
+  });
 }
 
 function viewStatement(driver) {
   // only the first account in the list at the time being
   return driver.findElement(By.css('a[title="View statement"]'))
-    .then((el) => el.click());
+  .then((el) => el.click());
 }
 
 
 function selectCurrentMonth(driver) {
   let month = opt.options.month || moment().format('MMM');
   return driver.findElement(By.css(`button[aria-label="${month} transactions"]`))
-    .then((el) => el.click());
+  .then((el) => el.click());
 }
 
 function openStatementOptions(driver) {
   return driver.findElement(By.css('button[aria-label="Statement options"]'))
-    .then((el) => el.sendKeys(Key.DOWN, Key.DOWN, Key.DOWN, Key.DOWN, Key.ENTER))
+  .then((el) => el.sendKeys(Key.DOWN, Key.DOWN, Key.DOWN, Key.DOWN, Key.ENTER))
 }
 
 function downloadStatement(driver) {
   return driver.findElement(By.css('select[name="exportFormat"]'))
-    .then((el) => el.sendKeys('I')) // Internet banking (CSV)
-    .then(() => driver.findElement(By.id('exportStatementsButton')))
-    .then((el) => el.click());
+  .then((el) => el.sendKeys('I')) // Internet banking (CSV)
+  .then(() => driver.findElement(By.id('exportStatementsButton')))
+  .then((el) => el.click());
 }
 
 function closeModal(driver) {
@@ -117,7 +117,6 @@ function moveDownloadedCSV() {
       }
       fs.rename( file, path.join(save_dir, new_filename), (err) => err ? reject(err) : resolve(path.join(save_dir, new_filename))  );
     });
-
   });
 }
 

@@ -19,8 +19,8 @@ Saves a few seconds for using [hyperbudget](https://github.com/hyperbudget/hyper
 No!
 
 ## CAVEATS
-* Your bank password will be saved in your terminal history in plan text
-    * I want some way of storing it in an encrypted configuration file though... or maybe even integrate with something like 1Password?
+* Your bank username will be saved in your terminal history in plan text. And your password is given from stdin...
+    * I want some way of storing it in an encrypted configuration file though...
 * It starts a chrome session
     * It should be relatively easy to hide it inside an Xvfb though.
 

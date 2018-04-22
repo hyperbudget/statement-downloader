@@ -4,13 +4,32 @@ const fs = require('fs');
 const path = require('path');
 const mkdirp = require('mkdirp');
 const glob = require('glob');
+const readline = require('readline');
+const Writable = require('stream').Writable;
 
 const downloads_dir = path.join(process.env.HOME, '/Downloads');
 
+/* I don't really like the way this works but I got it from
+ * https://stackoverflow.com/a/33500118 . It hides passwords in terminals. */
+
+const mutableStdout = new Writable({
+  write: function(chunk, encoding, callback) {
+    if (!this.muted)
+      process.stdout.write(chunk, encoding);
+    callback();
+  }
+});
+
+mutableStdout.muted = false;
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: mutableStdout,
+  terminal: true,
+});
+
 let opt = require('node-getopt').create([
     ['u', 'lloyds_username=ARG', 'The Lloyds bank username'],
-    ['p', 'lloyds_password=ARG', 'The Lloyds bank password'],
-    ['s', 'lloyds_secret=ARG', 'The Lloyds bank secret/memorable information word'],
     ['a', 'lloyds_account=ARG', 'The Lloyds bank account number'],
     ['', 'month[=ARG]', 'The month of the statement (Jan, Feb, Mar..); defaults to current month'],
     ['', 'dir[=ARG]', 'Directory to shove the statement in. Absolute paths only'],
@@ -18,7 +37,7 @@ let opt = require('node-getopt').create([
 
 const save_dir = opt.options.dir || path.join(process.env.HOME, '/bank2');
 
-console.log(opt.options);
+let password, secret;
 
 function build_driver() {
   return new Builder().
@@ -34,7 +53,7 @@ function login(driver) {
   .then((el) => el.sendKeys(opt.options.lloyds_username))
 
   .then(() => driver.findElement(By.id('frmLogin:strCustomerLogin_pwd')))
-  .then((el) => el.sendKeys(opt.options.lloyds_password))
+  .then((el) => el.sendKeys(password))
 
   .then(() => driver.findElement(By.id('frmLogin:btnLogin2')))
   .then((el) => el.click());
@@ -50,7 +69,7 @@ function fillMemorableInfoCharacter(driver, idx) {
 
     .then((html) => {
       let wanted_char = html.match(/Character (\d) :/)[1];
-      let secret_characters = opt.options.lloyds_secret.split("");
+      let secret_characters = secret.split("");
       let answer = secret_characters[wanted_char - 1];
 
       driver.findElement(By.id('frmentermemorableinformation1:strEnterMemorableInformation_memInfo' + idx))
@@ -120,36 +139,62 @@ function moveDownloadedCSV() {
   });
 }
 
-let driver = build_driver();
 
+rl.question("What is your password?\n", (pass) => {
+  password = pass;
+  // Un-mute to ask the next question.
+  mutableStdout.muted = false;
 
-makeSaveDir()
+  rl.question("\nWhat is your memorable info?\n", (mem) => {
+    secret = mem;
+    rl.close();
 
-.then(() => login(driver))
+    let driver = build_driver();
 
-.then(() => driver.wait(until.titleIs('Lloyds Bank - Enter Memorable Information'), 10000))
-.then(() => fillMemorableInfoCharacter(driver, 1))
-.then(() => fillMemorableInfoCharacter(driver, 2))
-.then(() => fillMemorableInfoCharacter(driver, 3))
-.then(() => driver.findElement(By.id('frmentermemorableinformation1:btnContinue')))
+    makeSaveDir()
 
-.then((el) => el.click())
-.then(() => viewStatement(driver))
+    .then(() => login(driver))
 
-  // there's ajax magic so give it a few seconds
-.then(() => driver.sleep(5000))
-.then(() => selectCurrentMonth(driver))
-.then(() => driver.sleep(5000))
-.then(() => openStatementOptions(driver))
-.then(() => driver.sleep(1000))
-.then(() => downloadStatement(driver))
-.then(() => driver.sleep(5000))
+    .then(() => driver.wait(until.titleIs('Lloyds Bank - Enter Memorable Information'), 10000))
+    .then(() => fillMemorableInfoCharacter(driver, 1))
+    .then(() => fillMemorableInfoCharacter(driver, 2))
+    .then(() => fillMemorableInfoCharacter(driver, 3))
+    .then(() => driver.findElement(By.id('frmentermemorableinformation1:btnContinue')))
 
-.then(() => closeModal(driver))
-.then(() => logOff(driver))
+    .then((el) => el.click())
+    .then(() => viewStatement(driver))
 
-.then(() => moveDownloadedCSV())
-.then((csvname) => console.log("DOWNLOADED FILE " + csvname))
-.then(() => driver.quit())
-.then(() => console.log("DONE"));
+      // there's ajax magic so give it a few seconds
+    .then(() => driver.sleep(1000))
+    .then(() => selectCurrentMonth(driver))
+    .then(() => driver.sleep(1000))
+    .then(() => openStatementOptions(driver))
+    .then(() => driver.sleep(1000))
+    .then(() => downloadStatement(driver))
+    .then(() => driver.sleep(2000))
 
+    .then(() => closeModal(driver))
+    .then(() => logOff(driver))
+
+    .then(() => moveDownloadedCSV())
+    .then((csvname) => console.log("DOWNLOADED FILE " + csvname))
+    .then(() => driver.quit())
+    .then(() => console.log("DONE"));
+  });
+
+  /* Essentially we're muting after we've asked the question but before we've got
+   * the answer. That way the answer is invisible. */
+  mutableStdout.muted = true;
+});
+
+mutableStdout.muted = true;
+
+// Again muting right after we've asked the question.
+// Thanks to all the async stuff going on, this is the order the above code is executed:
+// 1: line 143, the question is asked.
+// 2: line 190, mutableStdout.muted is turned on
+// 3: User inputs the password, which is invisible.
+// 4: lines 144-146 are executed, which stores the password in 'password' and un-mutes the output so we can ask the next question.
+// 5. line 148, again question is asked
+// 6. line 187, muting the output again.
+// 7. lines 149-182 after the user has answered.

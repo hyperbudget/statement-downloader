@@ -42,7 +42,7 @@ let password, secret;
 function build_driver() {
   return new Builder().
   withCapabilities({
-    'browserName': 'firefox', // the only reason for this is chrome saves files to ~/Downloads by default and we need to rely on that to grab the statement.
+    'browserName': 'chrome', // the only reason for this is chrome saves files to ~/Downloads by default and we need to rely on that to grab the statement.
   }).
   build();
 }
@@ -80,6 +80,8 @@ function fillMemorableInfoCharacter(driver, idx) {
       let secret_characters = password.split("");
       let wanted_char;
 
+      //the spans either contain "1st, 2nd, 3rd, 4th, etc..." or "second to last"/"last" :)
+
       if (html.match(/(\d)\S\S/)) {
         wanted_char = html.match(/(\d)\S\S/)[1];
       } else if (html.match(/second to last/)) {
@@ -97,20 +99,67 @@ function fillMemorableInfoCharacter(driver, idx) {
   });
 }
 
+// Currently unused
 function openStatementOptions(driver) {
   return driver.findElement(By.id('dapViewMoreDownload'))
   .then((el) => el.click());
 }
 
 function downloadStatement(driver) {
-  // for some completely stupid reason I can't select the download button with
-  // CSS even though the same selector works on the browser.  So I 'tab' on the
-  // input, then grab the active element (which is now the download button) and
-  // click it.
-  return driver.findElement(By.css('input[name="downloadAsCSV"]'))
-  .then((el) => { el.click(); el.sendKeys(Key.TAB); })
-  .then(() => driver.switchTo().activeElement())
-  .then((el) => { driver.actions().keyDown(Key.CONTROL).click(el).keyUp(Key.CONTROL).perform() });
+  // Clicking the button with selenium seems to do nothing.
+  // No matter how I try to click it.
+  // You'll be horrified to know that I found a way around it...
+
+  function _constructDownloadStatementURL() {
+    return new Promise((resolve, reject) => {
+      let now = moment();
+      let to_date = now.format('YYYY-MM-DD');
+      // i'm not sure about that 'from date'
+      // but I don't know if it matters?
+      let from_date = now.subtract(2, 'month').format('YYYY-MM-DD');
+
+      // sod it, let's just get all we need through the browser, life is short, right?
+      // especially after reading `_downloadTransHistory` from HSBC's javascript file.
+      // My life feels extremely short after that. Please call a doctor.
+      driver.executeScript(() => {
+        let args = arguments[0];
+        let from_date = args[0];
+        let to_date  = args[1];
+
+        // Construct the special URL
+        // Format is:
+        /* https://www.services.online-banking.hsbc.co.uk/gpib/channel/proxy/accountDataSvc/downloadTxnSumm/account/
+            <some hashed form of the account number you can find in the DOM>?reqType=csv&from=<date, eg2018-03-08>&to=<date, eg2018-05-06>
+            &formattedDisplyID=<sort code followed by a space followed by acc number, eg 00-00-00 12345678
+            &currency=GBP&entProdCatCde=CHQ&availBal=<BALANCE, e.g. 90>&entProdTypCde=CAA&prodTypCde=DDA&ldgrBal=<BALANCE>&lastUpdtTime=<today's date>&txnHistType=U
+        */
+
+        let url = 'https://www.services.online-banking.hsbc.co.uk/gpib/channel/proxy/accountDataSvc/downloadTxnSumm/account/';
+
+        let account_number_element = document.querySelector('[data-account-number]');
+        let account_number = account_number_element.getAttribute('data-account-number');
+
+        let sort_code_and_account_elem = document.querySelector('.itemDetailsContainer .itemName.tiny');
+        let sort_code_and_account = sort_code_and_account_elem.innerHTML;
+
+        let balance_element = document.getElementById(account_number);
+        let balance = balance_element.innerHTML;
+
+        // format is "<what you need>||GBP||CAA||GB". The other strings are probably also useful, but..
+        account_number = account_number.split('||')[0];
+
+        //YMMV
+        //                       ?reqType=csv&from=2018-03-08&to=2018-05-06  &formattedDisplyID=00-00-00 1234578       &currency=GBP&entProdCatCde=CHQ&availBal=89.45     &entProdTypCde=CAA&prodTypCde=DDA&ldgrBal=89.45     &lastUpdtTime=2018-05-06&txnHistType=U"
+        url += `${account_number}?reqType=csv&from=${from_date}&to=${to_date}&formattedDisplyID=${sort_code_and_account}&currency=GBP&entProdCatCde=CHQ&availBal=${balance}&entProdTypCde=CAA&prodTypCde=DDA&ldgrBal=${balance}&lastUpdtTime=${to_date}&txnHistType=U`;
+
+        console.log(url);
+        return url;
+      }, [from_date, to_date])
+      .then((url) => resolve(url));
+    })
+  }
+
+  return _constructDownloadStatementURL().then((url) => driver.get(url));
 }
 
 
@@ -175,17 +224,12 @@ rl.question("What is your password?\n", (pass) => {
 
     .then(() => driver.sleep(5000))
 
-    .then(() => openStatementOptions(driver))
-    .then(() => driver.sleep(500))
     .then(() => downloadStatement(driver))
-    .then(() => driver.sleep(5000))
-/*
     .then(() => logOff(driver))
-
     .then(() => moveDownloadedCSV())
     .then((csvname) => console.log("DOWNLOADED FILE " + csvname))
     .then(() => driver.quit())
-    .then(() => console.log("DONE"));*/
+    .then(() => console.log("DONE"));
   });
 
   /* Essentially we're muting after we've asked the question but before we've got
@@ -197,10 +241,10 @@ mutableStdout.muted = true;
 
 // Again muting right after we've asked the question.
 // Thanks to all the async stuff going on, this is the order the above code is executed:
-// 1: line 147, the question is asked.
-// 2: line 195, mutableStdout.muted is turned on
+// 1: line 196, the question is asked.
+// 2: line 239, mutableStdout.muted is turned on
 // 3: User inputs the password, which is invisible.
-// 4: lines 148-150 are executed, which stores the password in 'password' and un-mutes the output so we can ask the next question.
-// 5. line 152, again question is asked
-// 6. line 192, muting the output again.
-// 7. lines 153-187 after the user has answered.
+// 4: lines 197-199 are executed, which stores the password in 'password' and un-mutes the output so we can ask the next question.
+// 5. line 201, again question is asked
+// 6. line 236, muting the output again.
+// 7. lines 202-231 after the user has answered.

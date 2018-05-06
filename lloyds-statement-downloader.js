@@ -80,12 +80,25 @@ function fillMemorableInfoCharacter(driver, idx) {
 }
 
 function viewStatement(driver) {
-  // only the first account in the list at the time being
-  return driver.findElement(By.css('a[title="View statement"]'))
-  .then((el) => el.click());
+  // sometimes you get an advert/info and asked to click a button to continue, but not always.
+  return driver.findElements(By.id('frmMdlSAN:continueBtnSAN'))
+  .then(
+      (elems) => {
+        return new Promise((resolve, reject) => {
+          console.log(elems.length);
+          if (!!elems.length) {
+            return driver.findElement(By.id('frmMdlSAN:continueBtnSAN')).then(() => { (el) => el.click(); resolve(); } );
+          } else {
+            resolve();
+          }
+        });
+      }
+  )
+  .then( () => driver.findElement(By.css('a[title="View statement"]')) ) // only works with the 1st account
+  .then( (el) => el.click() );
 }
 
-
+//frmMdlSAN:continueBtnSAN
 function selectCurrentMonth(driver) {
   let month = opt.options.month || moment().format('MMM');
   return driver.findElement(By.css(`button[aria-label="${month} transactions"]`))

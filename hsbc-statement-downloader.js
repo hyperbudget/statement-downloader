@@ -225,6 +225,7 @@ rl.question("What is your password?\n", (pass) => {
     .then(() => driver.sleep(5000))
 
     .then(() => downloadStatement(driver))
+    .then(() => driver.sleep(1000))
     .then(() => logOff(driver))
     .then(() => moveDownloadedCSV())
     .then((csvname) => console.log("DOWNLOADED FILE " + csvname))

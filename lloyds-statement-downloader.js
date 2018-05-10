@@ -124,7 +124,7 @@ function moveDownloadedCSV() {
   let month = opt.options.month || moment().format('MMM');
 
   let new_filename = moment(new Date(month + '1 ' + moment().format('Y') + ' 00:00 UTC')).format('YMM') + '.csv';
-  new_Filename = path.join(save_dir, new_filename);
+  new_filename = path.join(save_dir, new_filename);
 
   return move_file(file_pattern, new_filename);
 }

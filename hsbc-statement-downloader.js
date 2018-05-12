@@ -1,11 +1,11 @@
 const {Builder, By, Key, until} = require('selenium-webdriver');
 const moment = require('moment');
-const fs = require('fs');
 const path = require('path');
 const mkdirp = require('mkdirp');
-const glob = require('glob');
 const readline = require('readline');
 const Writable = require('stream').Writable;
+
+const { move_file } = require('./lib/util');
 
 const downloads_dir = path.join(process.env.HOME, '/Downloads');
 
@@ -173,24 +173,13 @@ function makeSaveDir() {
 }
 
 function moveDownloadedCSV() {
+  let file_pattern = `${downloads_dir}/TransHist.csv`;
   let month = opt.options.month || moment().format('MMM');
 
   let new_filename = moment(new Date(month + '1 ' + moment().format('Y') + ' 00:00 UTC')).format('YMM') + 'h.csv';
+  new_filename = path.join(save_dir, new_filename);
 
-  return new Promise((resolve, reject) => {
-    let found = false;
-
-    glob(`${downloads_dir}/TransHist.csv`, { }, function(er, files) {
-      if (er) {
-        reject(er);
-      }
-      let file = files[0];
-      if (!file) {
-        return reject("Could not find a file matching TransHist.csv");
-      }
-      fs.rename( file, path.join(save_dir, new_filename), (err) => err ? reject(err) : resolve(path.join(save_dir, new_filename))  );
-    });
-  });
+  return move_file(file_pattern, new_filename);
 }
 
 

@@ -87,9 +87,12 @@ function viewStatement(driver) {
         return new Promise((resolve, reject) => {
           console.log(elems.length);
           if (!!elems.length) {
-            return driver.findElement(By.id('frmMdlSAN:continueBtnSAN')).then(() => { (el) => el.click(); resolve(); } );
+            console.log("wat");
+            return driver.findElement(By.id('frmMdlSAN:continueBtnSAN'))
+            .then(() => (el) => el.click())
+            .then(() => resolve());
           } else {
-            resolve();
+            return resolve();
           }
         });
       }

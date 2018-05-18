@@ -85,11 +85,9 @@ function viewStatement(driver) {
   .then(
       (elems) => {
         return new Promise((resolve, reject) => {
-          console.log(elems.length);
           if (!!elems.length) {
-            console.log("wat");
             return driver.findElement(By.id('frmMdlSAN:continueBtnSAN'))
-            .then(() => (el) => el.click())
+            .then((el) => el.click())
             .then(() => resolve());
           } else {
             return resolve();

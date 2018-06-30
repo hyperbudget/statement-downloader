@@ -1,10 +1,8 @@
-const glob = require('glob');
-const mv = require('mv');
+import { glob } from 'glob';
+import mv = require('mv');
 
-const move_file = (file_pattern, new_filename) => {
-  return new Promise((resolve, reject) => {
-    let found = false;
-
+export const move_file = (file_pattern: string, new_filename: string): Promise<string> => {
+  return new Promise<string>((resolve, reject) => {
     glob(file_pattern, { }, function(er, files) {
       if (er) {
         reject(er);
@@ -17,5 +15,3 @@ const move_file = (file_pattern, new_filename) => {
     });
   });
 }
-
-module.exports = { move_file: move_file };

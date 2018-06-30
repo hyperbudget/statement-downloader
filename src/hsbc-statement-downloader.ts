@@ -7,6 +7,7 @@ let opt = require('node-getopt').create([
     ['u', 'hsbc_username=ARG', 'The username'],
     ['a', 'hsbc_account=ARG', 'The bank account number'],
     ['', 'month[=ARG]', 'The month of the statement (Jan, Feb, Mar..); defaults to current month'],
+    ['h', 'headless', 'Headless mode'],
     ['', 'dir[=ARG]', 'Directory to shove the statement in. Absolute paths only'],
 ]).bindHelp().parseSystem();
 
@@ -20,4 +21,5 @@ new HSBCStatementDownloader({
   account: process.env.ACCOUNT || opt.options.hsbc_account,
   password: process.env.PASSWORD,
   memorable_info: process.env.MEMORABLE_INFO,
+  driver_opts: { headless: !!opt.options.headless },
 }).doDownloadStatement();

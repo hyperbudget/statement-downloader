@@ -82,7 +82,7 @@ export class LloydsStatementDownloader extends StatementDownloader {
   }
 
   moveDownloadedCSV() {
-    let file_pattern = this.account + "_" + moment().format('YMMDD');
+    let file_pattern = this.account + "_" + moment().utc().format('YMMDD');
     file_pattern = `${this.downloads_dir}/${file_pattern}*.csv`;
 
     let month = this.month || moment().format('MMM');

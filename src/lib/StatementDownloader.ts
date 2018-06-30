@@ -1,4 +1,5 @@
 import {Builder, By, ThenableWebDriver} from 'selenium-webdriver';
+import chrome from 'selenium-webdriver/chrome';
 
 import * as path from 'path';
 import { mkdirp } from 'mkdirp';
@@ -16,6 +17,7 @@ export abstract class StatementDownloader {
   username: string;
   account?: string;
   month?: string;
+  driver_opts?: { headless?: boolean };
 
   constructor(args:
     {
@@ -26,6 +28,7 @@ export abstract class StatementDownloader {
       month?: string,
       password?: string,
       memorable_info?: string,
+      driver_opts?: { headless?: boolean },
     }) {
     this.save_dir = args.save_dir;
     this.username = args.username;
@@ -34,14 +37,20 @@ export abstract class StatementDownloader {
     this.month = args.month;
     this.password = args.password;
     this.memorable_info = args.memorable_info;
+    this.driver_opts = args.driver_opts;
   }
 
   build_driver(): void {
-    this.driver = new Builder().
+    const builder: Builder = new Builder().
     withCapabilities({
       'browserName': 'chrome', // the only reason for this is chrome saves files to ~/Downloads by default and we need to rely on that to grab the statement.
-    }).
-    build();
+    });
+
+    if (this.driver_opts.headless) {
+      builder.setChromeOptions((<any>new chrome.Options()).windowSize({ width: 1626, height: 768 }).headless());
+    }
+
+    this.driver = builder.build();
   }
 
   abstract login(): PromiseLike<void>;

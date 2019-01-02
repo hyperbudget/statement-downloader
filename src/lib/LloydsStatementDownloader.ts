@@ -1,4 +1,4 @@
-import { By, Key, until } from 'selenium-webdriver';
+import { By, Key, until, WebElement } from 'selenium-webdriver';
 import moment from 'moment';
 
 import { StatementDownloader } from './StatementDownloader';
@@ -56,10 +56,29 @@ export class LloydsStatementDownloader extends StatementDownloader {
       .then((el) => el.click());
   }
 
-  selectCurrentMonth(): PromiseLike<void> {
-    let month = this.month || moment().format('MMM');
-    return this.driver.findElement(By.css(`button[aria-label="${month} transactions"]`))
-      .then((el) => el.click());
+  async findMonthTxns(month): Promise<WebElement> {
+    const existingElems = (await Promise.all([
+      // Jan transactions
+      this.driver.findElements(By.css(`button[aria-label="${month.format('MMM')} transactions"]`)),
+      // January transactions
+      this.driver.findElements(By.css(`button[aria-label="${month.format('MMMM')} transactions"]`)),
+      // January 2019 transactions
+      this.driver.findElements(By.css(`button[aria-label="${month.format('MMMM')} ${month.format('YYYY')} transactions"]`)),
+      // December 2018 transactions
+      this.driver.findElements(By.css(`button[aria-label="${month.format('MMMM')} ${month.clone().subtract(1, 'year').format('YYYY')} transactions"]`))
+    ])).find(elems => elems.length > 0);
+
+    if (existingElems && existingElems.length) {
+      return existingElems[0];
+    }
+
+    throw new Error('No "MMM transactions" or "MMMM transactions" or "MMMM YYYY transactions" aria-label could be found!');
+  }
+
+  async selectCurrentMonth(): Promise<void> {
+    let month = this.month ? moment(this.month, 'MMM') : moment();
+    let el = await this.findMonthTxns(month);
+    return el.click();
   }
 
   openStatementOptions(): PromiseLike<void> {
